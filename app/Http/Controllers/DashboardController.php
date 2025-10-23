@@ -6,6 +6,7 @@ use App\Models\Project;
 use App\Models\Issue;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -15,9 +16,38 @@ class DashboardController extends Controller
     {
         $userId = Auth::id();
 
-        // Stats for the signed-in user (personal tracker)
+        // If the projects table isn't there yet, show an empty dashboard safely.
+        if (!Schema::hasTable('projects')) {
+            return Inertia::render('Dashboard', [
+                'stats' => [
+                    'projects'      => 0,
+                    'issues'        => 0,
+                    'issues_todo'   => 0,
+                    'issues_doing'  => 0,
+                    'issues_done'   => 0,
+                ],
+                'recentIssues' => [],
+            ]);
+        }
+
+        // Projects count (safe now, projects table exists)
         $projectsCount = Project::where('owner_id', $userId)->count();
 
+        // If issues table isn't there yet (e.g., mid-migration), return zeroed issue stats.
+        if (!Schema::hasTable('issues')) {
+            return Inertia::render('Dashboard', [
+                'stats' => [
+                    'projects'      => $projectsCount,
+                    'issues'        => 0,
+                    'issues_todo'   => 0,
+                    'issues_doing'  => 0,
+                    'issues_done'   => 0,
+                ],
+                'recentIssues' => [],
+            ]);
+        }
+
+        // Normal path: both tables exist
         $issuesBase = Issue::whereHas('project', fn ($q) => $q->where('owner_id', $userId));
 
         $issuesCount      = (clone $issuesBase)->count();
@@ -25,7 +55,6 @@ class DashboardController extends Controller
         $issuesInProgress = (clone $issuesBase)->where('status', 'in_progress')->count();
         $issuesDone       = (clone $issuesBase)->where('status', 'done')->count();
 
-        // Recent 5 issues (newest first)
         $recentIssues = (clone $issuesBase)
             ->select('id','number','title','status','priority','project_id','created_at')
             ->with(['project:id,key,name'])

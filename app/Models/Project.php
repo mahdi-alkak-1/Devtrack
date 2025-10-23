@@ -13,7 +13,8 @@ class Project extends Model
         'name',                                        // 8) Project name column.
         'key',                                         // 9) Short code like "WEB".
         'description',                                 // 10) Optional description.
-        'owner_id',                                    // 11) FK to users.id
+        'owner_id',
+        'community_id',                                     // 11) FK to users.id
     ];
 
         public function owner()                            // 12) Define inverse relation: project → its owner (User).
@@ -26,4 +27,8 @@ class Project extends Model
         return $this->hasMany(Issue::class)->orderBy('number'); // project_id is inferred
     }
 
+    public function community(){
+        return $this->belongsTo(Community::class);
+    }
+    
 }

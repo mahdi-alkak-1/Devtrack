@@ -1,0 +1,64 @@
+/* ===== Dashboard Theme Overrides (append at end) ===== */
+
+/* Layout */
+body, .wrapper, .body { background-color:#0f1731 !important; }
+.inner-body{
+  background-color:#121b3d !important;
+  border:1px solid rgba(255,255,255,.06) !important;
+  border-radius:16px !important;
+  box-shadow:0 8px 24px rgba(0,0,0,.35) !important;
+}
+.content-cell{ color:#e6eaf3 !important; padding:28px !important; }
+
+/* Header */
+.header{ padding:24px 0 !important; }
+.header a{ color:#e6f9ff !important; font-size:18px !important; text-decoration:none !important; }
+
+/* Typography */
+h1,h2,h3{ color:#fff !important; }
+p, ul, ol, blockquote, td, th{ color:#cdd7ff !important; }
+a{ color:#7ee3ff !important; text-decoration:underline !important; }
+
+/* Divider / subcopy */
+.subcopy{ border-top:1px solid rgba(255,255,255,.08) !important; }
+.subcopy p{ color:#a9b8ff !important; }
+
+/* Buttons */
+.action{ margin:26px auto !important; }
+.button{
+  -webkit-text-size-adjust:none;
+  display:inline-block !important;
+  border:none !important;                 /* remove old border-as-padding hack */
+  border-radius:9999px !important;
+  padding:12px 22px !important;
+  font-weight:700 !important;
+  letter-spacing:.2px !important;
+  text-decoration:none !important;
+}
+/* Primary gradient (used by Verify Email) */
+.button-primary, .button-blue, .button-success{
+  background:linear-gradient(90deg,#32e1ff 0%, #28e0b9 100%) !important;
+  color:#0b152f !important;
+  box-shadow:0 6px 16px rgba(34,212,214,.35) !important;
+}
+a.button:hover{ filter:brightness(1.05) !important; } /* supported in some clients */
+
+/* Panels / code blocks */
+.panel{ border-left:#1fc8ff solid 4px !important; }
+.panel-content{ background:#0c1230 !important; color:#d7e6ff !important; }
+code, pre{
+  background:#0c1230 !important;
+  color:#e6f9ff !important;
+  border:1px solid rgba(255,255,255,.05) !important;
+  border-radius:10px !important;
+  padding:10px 12px !important;
+}
+
+/* Footer */
+.footer p, .footer a{ color:#9bb0ff !important; }
+
+/* Mobile */
+@media only screen and (max-width: 600px){
+  .inner-body{ border-radius:12px !important; }
+  .content-cell{ padding:22px !important; }
+}

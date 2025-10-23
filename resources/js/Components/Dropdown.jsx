@@ -5,99 +5,91 @@ import { createContext, useContext, useState } from 'react';
 const DropDownContext = createContext();
 
 const Dropdown = ({ children }) => {
-    const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false);
+  const toggleOpen = () => setOpen(prev => !prev);
 
-    const toggleOpen = () => {
-        setOpen((previousState) => !previousState);
-    };
-
-    return (
-        <DropDownContext.Provider value={{ open, setOpen, toggleOpen }}>
-            <div className="relative">{children}</div>
-        </DropDownContext.Provider>
-    );
+  return (
+    <DropDownContext.Provider value={{ open, setOpen, toggleOpen }}>
+      <div className="relative">{children}</div>
+    </DropDownContext.Provider>
+  );
 };
 
 const Trigger = ({ children }) => {
-    const { open, setOpen, toggleOpen } = useContext(DropDownContext);
+  const { open, setOpen, toggleOpen } = useContext(DropDownContext);
 
-    return (
-        <>
-            <div onClick={toggleOpen}>{children}</div>
+  return (
+    <>
+      <div onClick={toggleOpen}>{children}</div>
 
-            {open && (
-                <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setOpen(false)}
-                ></div>
-            )}
-        </>
-    );
+      {/* backdrop to close on outside click */}
+      {open && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setOpen(false)}
+        />
+      )}
+    </>
+  );
 };
 
 const Content = ({
-    align = 'right',
-    width = '48',
-    contentClasses = 'py-1 bg-white',
-    children,
+  align = 'right',
+  width = '48',
+  // DARK THEME DEFAULTS:
+  contentClasses = 'py-1 bg-[#0f1731] text-white/80 backdrop-blur-md rounded-lg border border-white/10 ring-1 ring-white/10',
+  children,
 }) => {
-    const { open, setOpen } = useContext(DropDownContext);
+  const { open, setOpen } = useContext(DropDownContext);
 
-    let alignmentClasses = 'origin-top';
+  let alignmentClasses = 'origin-top';
+  if (align === 'left') {
+    alignmentClasses = 'ltr:origin-top-left rtl:origin-top-right start-0';
+  } else if (align === 'right') {
+    alignmentClasses = 'ltr:origin-top-right rtl:origin-top-left end-0';
+  }
 
-    if (align === 'left') {
-        alignmentClasses = 'ltr:origin-top-left rtl:origin-top-right start-0';
-    } else if (align === 'right') {
-        alignmentClasses = 'ltr:origin-top-right rtl:origin-top-left end-0';
-    }
+  let widthClasses = '';
+  if (width === '48') widthClasses = 'w-48';
 
-    let widthClasses = '';
-
-    if (width === '48') {
-        widthClasses = 'w-48';
-    }
-
-    return (
-        <>
-            <Transition
-                show={open}
-                enter="transition ease-out duration-200"
-                enterFrom="opacity-0 scale-95"
-                enterTo="opacity-100 scale-100"
-                leave="transition ease-in duration-75"
-                leaveFrom="opacity-100 scale-100"
-                leaveTo="opacity-0 scale-95"
-            >
-                <div
-                    className={`absolute z-50 mt-2 rounded-md shadow-lg ${alignmentClasses} ${widthClasses}`}
-                    onClick={() => setOpen(false)}
-                >
-                    <div
-                        className={
-                            `rounded-md ring-1 ring-black ring-opacity-5 ` +
-                            contentClasses
-                        }
-                    >
-                        {children}
-                    </div>
-                </div>
-            </Transition>
-        </>
-    );
+  return (
+    <Transition
+      show={open}
+      enter="transition ease-out duration-200"
+      enterFrom="opacity-0 scale-95"
+      enterTo="opacity-100 scale-100"
+      leave="transition ease-in duration-75"
+      leaveFrom="opacity-100 scale-100"
+      leaveTo="opacity-0 scale-95"
+    >
+      <div
+        className={`absolute z-50 mt-2 ${alignmentClasses} ${widthClasses}`}
+        // close when clicking inside (matches your current behavior);
+        // remove this onClick if you want click-through without closing.
+        onClick={() => setOpen(false)}
+      >
+        <div className={contentClasses}>
+          {children}
+        </div>
+      </div>
+    </Transition>
+  );
 };
 
 const DropdownLink = ({ className = '', children, ...props }) => {
-    return (
-        <Link
-            {...props}
-            className={
-                'block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 transition duration-150 ease-in-out hover:bg-gray-100 focus:bg-gray-100 focus:outline-none ' +
-                className
-            }
-        >
-            {children}
-        </Link>
-    );
+  return (
+    <Link
+      {...props}
+      className={[
+        'block w-full rounded-md px-3 py-2 text-start text-sm leading-5',
+        // DARK THEME LINK STYLES:
+        'text-white/80 hover:bg-white/10 hover:text-white focus:outline-none focus:ring-0',
+        className,
+      ].join(' ')}
+    >
+      {children}
+    </Link>
+  );
 };
 
 Dropdown.Trigger = Trigger;

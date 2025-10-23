@@ -24,6 +24,7 @@ class UpdateProjectRequest extends FormRequest
         return [
             'name'        => ['required', 'string', 'max:255'],    // short name
             'description' => ['nullable', 'string'],               // optional body (markdown/text)
+            'community_id' => ['nullable','exists:communities,id'],
         ];
     }
 }

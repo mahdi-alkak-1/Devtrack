@@ -1,154 +1,101 @@
 <?php
 
-namespace App\Http\Controllers;                             // 1) Controller namespace
+namespace App\Http\Controllers;
 
-use App\Models\Project;                                     // 2) We’ll list issues for a given Project
-use App\Models\Issue;                                       // 3) (Optional here) direct access to Issue if needed
-use Illuminate\Http\Request;                                // 4) To read filters later (?status=...)
-use Inertia\Inertia;                                        // 5) Inertia bridge
-use Inertia\Response;                                       // 6) Return type hint
-use Illuminate\Support\Facades\Auth; 
-use App\Http\Requests\StoreIssueRequest;     // 1) Our validation rules
-use Illuminate\Http\RedirectResponse;        // 2) Redirect type
-use Illuminate\Support\Facades\DB;           // 3) For an atomic transaction (safe numbering)
-                       // 7) Current user (for auth checks later)
+use App\Models\Project;
+use App\Models\Issue;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
+use Illuminate\Support\Facades\Auth;
+use App\Http\Requests\StoreIssueRequest;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
+use App\Notifications\IssueAssigned;
+use App\Notifications\IssueStatusChanged;
 
-class IssueController extends Controller                    // 8) Our controller class
+class IssueController extends Controller
 {
     // GET /projects/{project}/issues
-    public function index(Request $request, Project $project): Response   // 9) Route Model Binding injects Project
+    public function index(Request $request, Project $project): Response
     {
-        // 10) Basic auth guard (owner-only for now; we’ll add policies later)
+        // Owner-only listing page (assignees use "My Work")
         if ($project->owner_id !== Auth::id()) {
             abort(403, 'You do not have access to this project.');
         }
 
-        
-        // 1) Read optional ?status=todo|in_progress|done from the query string
         $status = $request->query('status');
-        $allowed = ['todo', 'in_progress', 'done'];
-        if ($status && !in_array($status, $allowed, true)) {
-            $status = null; // ignore invalid values
+        $allowedStatus = ['todo', 'in_progress', 'done'];
+        if ($status && !in_array($status, $allowedStatus, true)) {
+            $status = null;
         }
 
-            // NEW: priority filter
         $priority = $request->query('priority');
         $allowedPriority = ['low', 'medium', 'high'];
         if ($priority && !in_array($priority, $allowedPriority, true)) {
             $priority = null;
         }
 
-        // 11) Fetch issues for this project (we’ll add filters/pagination later)
         $query = $project->issues()
             ->select('id','number','title','status','priority','assignee_id','created_at')
-            ->orderBy('number');        // show in sequence order
+            ->orderBy('number');
 
-        if ($status) {
-            $query->where('status', $status);
-        }
+        if ($status)   $query->where('status', $status);
+        if ($priority) $query->where('priority', $priority);
 
-            // NEW:
-        if ($priority) {
-            $query->where('priority', $priority);
-        }
-        
         $issues = $query->get();
 
-        // 12) Send data to a new React page: resources/js/Pages/Issues/Index.jsx
+        // Assignee options = accepted members of the project's community (if any)
+        $assignees = collect();
+        if ($project->community_id) {
+            $assignees = User::select('users.id','users.name')
+                ->join('community_user','users.id','=','community_user.user_id')
+                ->where('community_user.community_id', $project->community_id)
+                ->where('community_user.status', 'accepted')
+                ->orderBy('users.name')
+                ->get();
+        }
+
         return Inertia::render('Issues/Index', [
             'project' => [
-                'id'   => $project->id,
-                'name' => $project->name,
-                'key'  => $project->key,
+                'id'        => $project->id,
+                'name'      => $project->name,
+                'key'       => $project->key,
+                'owner_id'  => $project->owner_id, // 👈 needed to show owner-only UI
             ],
             'issues'  => $issues,
-            'me' => [
-                'id' =>Auth::id(),
-                'name' => Auth::user()->name,   
+            'me'      => [
+                'id'   => Auth::id(),
+                'name' => Auth::user()->name,
             ],
-                'filters' => [                         // 👈 add this block
-                'status' => $status,               // 'todo' | 'in_progress' | 'done' | null
-                
+            'filters' => [
+                'status'   => $status,
+                'priority' => $priority,
             ],
+            'assignees' => $assignees,
         ]);
-    }
-
-    public function store(StoreIssueRequest $request, Project $project): RedirectResponse
-    {
-        // 4) Basic access guard — only owner for now (we'll add Policies later)
-        if ($project->owner_id !== Auth::id()) {
-            abort(403, 'You do not have access to this project.');
-        }
-
-        // 5) Validate input using StoreIssueRequest; gives us only clean fields
-        $data = $request->validated();
-
-        // 6) Create the issue inside a DB transaction so "number" stays consistent if two creates happen at once
-        DB::transaction(function () use ($project, $data) {
-            // 7) Find the next per-project sequence number: max(number)+1 (or 1 if none)
-            $nextNumber = ($project->issues()->max('number') ?? 0) + 1;
-
-            // 8) Insert the issue
-            $project->issues()->create([
-                'number'      => $nextNumber,                 // WEB-<number>
-                'title'       => $data['title'],
-                'description' => $data['description'] ?? null,
-                'status'      => $data['status'] ?? 'todo',
-                'priority'    => $data['priority'] ?? 'medium',
-                'due_date'    => $data['due_date'] ?? null,
-                'assignee_id' => $data['assignee_id'] ?? null,
-            ]);
-        });
-
-        // 9) Redirect back to this project's issues list with a success flash
-        return redirect()
-            ->route('projects.issues.index', $project->id)
-            ->with('success', 'Issue created successfully.');
-    }
-
-    public function update(Request $request, Project $project, Issue $issue): RedirectResponse
-    {
-        if ($project->owner_id !== Auth::id()) {
-            abort(403, 'You do not have access to this project.');
-        }
-        if ($issue->project_id !== $project->id) {
-            abort(404, 'Issue not found in this project.');
-        }
-
-        // Validate optional fields; at least one must be present
-        $data = $request->validate([
-            'status'   => ['nullable', 'in:todo,in_progress,done'],
-            'priority' => ['nullable', 'in:low,medium,high'],
-        ]);
-
-        if (empty(array_filter($data, fn ($v) => !is_null($v)))) {
-            return back()->with('error', 'Nothing to update.');
-        }
-
-        $issue->update(array_filter($data, fn ($v) => !is_null($v)));
-
-        return redirect()
-            ->route('projects.issues.index', $project->id)
-            ->with('success', 'Issue updated.');
     }
 
     public function show(Project $project, Issue $issue): Response
     {
-        // 1) Make sure the issue belongs to this project (integrity check).
+        // Ensure the issue belongs to the project
         if ($issue->project_id !== $project->id) {
             abort(404, 'Issue not found in this project.');
         }
 
-        // 2) (Simple auth) Only the project owner for now.
-        if ($project->owner_id !== Auth::id()) {
-            abort(403, 'You do not have access to this project.');
+        $userId     = Auth::id();
+        $isOwner    = $project->owner_id === $userId;
+        $isAssignee = $issue->assignee_id === $userId;
+
+        // Allow project owner OR the assignee to view
+        if (!($isOwner || $isAssignee)) {
+            abort(403, 'You do not have access to this issue.');
         }
 
-        // 3) Optionally eager-load small relations (assignee) if you want.
         $issue->load('assignee:id,name');
 
-        // 4) Render the React page and pass the props we need.
-        return Inertia::render('Issues/Show', [
+        return \Inertia\Inertia::render('Issues/Show', [
             'project' => [
                 'id'   => $project->id,
                 'name' => $project->name,
@@ -168,24 +115,156 @@ class IssueController extends Controller                    // 8) Our controller
         ]);
     }
 
-    public function destroy(Project $project, Issue $issue): RedirectResponse
+    // POST /projects/{project}/issues
+    public function store(StoreIssueRequest $request, Project $project): RedirectResponse
     {
-        // 1) Ensure the issue belongs to this project
-        if ($issue->project_id !== $project->id) {
-            abort(404, 'Issue not found in this project.');
-        }
-
-        // 2) Simple auth: only the project owner can delete (for now)
         if ($project->owner_id !== Auth::id()) {
             abort(403, 'You do not have access to this project.');
         }
 
-        // 3) Delete the issue
+        $data = $request->validated();
+
+        // If assignee provided, ensure they belong to the project's community
+        if (!empty($data['assignee_id']) && $project->community_id) {
+            $isMember = DB::table('community_user')
+                ->where('community_id', $project->community_id)
+                ->where('user_id', $data['assignee_id'])
+                ->where('status', 'accepted')
+                ->exists();
+            if (!$isMember) {
+                return back()->with('error', 'Selected user is not in this project’s community.');
+            }
+        }
+
+        $createdIssue = null;
+
+        DB::transaction(function () use ($project, $data, &$createdIssue) {
+            $nextNumber = ($project->issues()->max('number') ?? 0) + 1;
+
+            $createdIssue = $project->issues()->create([
+                'number'      => $nextNumber,
+                'title'       => $data['title'],
+                'description' => $data['description'] ?? null,
+                'status'      => $data['status'] ?? 'todo',
+                'priority'    => $data['priority'] ?? 'medium',
+                'due_date'    => $data['due_date'] ?? null,
+                'assignee_id' => $data['assignee_id'] ?? null,
+            ]);
+        });
+
+        // Notify assignee if set
+        if ($createdIssue && !empty($data['assignee_id'])) {
+            $assignee = User::find($data['assignee_id']);
+            if ($assignee) {
+                $assignee->notify(new IssueAssigned($createdIssue));
+            }
+        }
+
+        return redirect()
+            ->route('projects.issues.index', $project->id)
+            ->with('success', 'Issue created successfully.');
+    }
+
+    // PATCH /projects/{project}/issues/{issue}
+// app/Http/Controllers/IssueController.php
+
+    public function update(Request $request, Project $project, Issue $issue): RedirectResponse
+    {
+        // 1) Integrity: make sure this issue belongs to this project
+        if ($issue->project_id !== $project->id) {
+            abort(404, 'Issue not found in this project.');
+        }
+
+        // 2) Authorization: allow project owner OR the assignee
+        $userId     = Auth::id();
+        $isOwner    = $project->owner_id === $userId;
+        $isAssignee = $issue->assignee_id === $userId;
+
+        if (!($isOwner || $isAssignee)) {
+            abort(403, 'You do not have access to update this issue.');
+        }
+
+        // 3) Validation: owner can change assignee; assignee can change status/priority
+        $rules = [
+            'status'   => ['nullable', 'in:todo,in_progress,done'],
+            'priority' => ['nullable', 'in:low,medium,high'],
+        ];
+        if ($isOwner) {
+            $rules['assignee_id'] = ['nullable', 'exists:users,id'];
+        }
+        $data = $request->validate($rules);
+
+        // 4) If owner is changing assignee, ensure that user is in the project's community (if any)
+        if (
+            $isOwner &&
+            array_key_exists('assignee_id', $data) &&
+            !is_null($data['assignee_id']) &&
+            $project->community_id
+        ) {
+            $isMember = DB::table('community_user')
+                ->where('community_id', $project->community_id)
+                ->where('user_id', $data['assignee_id'])
+                ->where('status', 'accepted')
+                ->exists();
+
+            if (!$isMember) {
+                return back()->with('error', 'Selected user is not in this project’s community.');
+            }
+        }
+
+        if (empty(array_filter($data, fn ($v) => !is_null($v)))) {
+            return back()->with('error', 'Nothing to update.');
+        }
+
+        $oldStatus   = $issue->status;
+        $oldAssignee = $issue->assignee_id;
+
+        // 5) Apply updates
+        $issue->update(array_filter($data, fn ($v) => !is_null($v)));
+
+        // 6) Notify new assignee (only if owner changed assignee)
+        if ($isOwner && array_key_exists('assignee_id', $data) && $data['assignee_id'] && (int)$data['assignee_id'] !== (int)$oldAssignee) {
+            $assignee = \App\Models\User::find($data['assignee_id']);
+            if ($assignee) {
+                $assignee->notify(new \App\Notifications\IssueAssigned($issue));
+            }
+        }
+
+        // 7) Notify owner when status becomes 'done' (assignee completing work)
+        if (isset($data['status']) && $oldStatus !== $data['status'] && $data['status'] === 'done') {
+            $owner = $project->owner;
+            if ($owner) {
+                $owner->notify(new \App\Notifications\IssueStatusChanged($issue, $oldStatus, $data['status']));
+            }
+        }
+
+        // From My Work we do a partial reload, so redirecting back is fine
+        return back()->with('success', 'Issue updated.');
+    }
+
+
+    // DELETE /projects/{project}/issues/{issue}
+    public function destroy(Project $project, Issue $issue): RedirectResponse
+    {
+        if ($issue->project_id !== $project->id) {
+            abort(404, 'Issue not found in this project.');
+        }
+        if ($project->owner_id !== Auth::id()) {
+            abort(403, 'You do not have access to this project.');
+        }
+
         $issue->delete();
 
-        // 4) Redirect back to the issues list with a flash message
         return redirect()
             ->route('projects.issues.index', $project->id)
             ->with('success', 'Issue deleted.');
+    }
+
+    // (kept if you use it elsewhere)
+    private function isOwnerOrAssignee(Project $project, Issue $issue): bool
+    {
+        $userId = Auth::id();
+        return $issue->project_id === $project->id
+            && ($userId === $project->owner_id || $userId === $issue->assignee_id);
     }
 }

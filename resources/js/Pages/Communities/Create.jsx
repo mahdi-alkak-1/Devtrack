@@ -1,36 +1,44 @@
-import AppLayout from '@/Layouts/AppLayout';
-import { useForm } from '@inertiajs/react';
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout'
+import Button from '@/Components/Button'
+import { Head, useForm } from '@inertiajs/react'
 
 export default function Create() {
-  const { data, setData, post, processing, errors } = useForm({ name: '' });
+  const { data, setData, post, processing, errors } = useForm({ name: '' })
 
   function submit(e) {
-    e.preventDefault();
-    post(route('communities.store'));
+    e.preventDefault()
+    post(route('communities.store'))
   }
 
   return (
-    <AppLayout title="Create Community">
-      <h1 className="text-2xl font-semibold mb-4">Create Community</h1>
-      <form onSubmit={submit} className="space-y-4 max-w-md">
+    <AuthenticatedLayout>
+      <Head title="Create Community" />
+
+      <div className="mb-4">
+        <h1 className="text-xl font-semibold text-white">Create Community</h1>
+        <p className="mt-1 text-sm text-white/60">
+          Spin up a new space and invite your team.
+        </p>
+      </div>
+
+      <form onSubmit={submit} className="max-w-md space-y-4 rounded-2xl border border-white/10 bg-[#0f1731] p-5 shadow">
         <div>
-          <label className="block text-sm font-medium">Name</label>
+          <label className="block text-sm font-medium text-white/80">Name</label>
           <input
-            className="mt-1 w-full rounded border px-3 py-2"
+            className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-white/30 outline-none focus:border-cyan-400/60"
             value={data.name}
             onChange={e => setData('name', e.target.value)}
+            placeholder="e.g. Frontend Guild"
           />
-          {errors.name && <p className="text-sm text-red-600">{errors.name}</p>}
+          {errors?.name && <p className="mt-1 text-sm text-rose-400">{errors.name}</p>}
         </div>
 
-        <button
-          type="submit"
-          disabled={processing}
-          className="rounded bg-black px-4 py-2 text-white disabled:opacity-50"
-        >
-          {processing ? 'Creating…' : 'Create'}
-        </button>
+        <div className="pt-1">
+          <Button type="submit" disabled={processing}>
+            {processing ? 'Creating…' : 'Create Community'}
+          </Button>
+        </div>
       </form>
-    </AppLayout>
-  );
+    </AuthenticatedLayout>
+  )
 }

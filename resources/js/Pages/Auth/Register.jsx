@@ -1,117 +1,126 @@
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
-import TextInput from '@/Components/TextInput';
-import GuestLayout from '@/Layouts/GuestLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
+import InputError from '@/Components/InputError'
+import InputLabel from '@/Components/InputLabel'
+import PrimaryButton from '@/Components/PrimaryButton'
+import TextInput from '@/Components/TextInput'
+import GuestLayout from '@/Layouts/GuestLayout'
+import { Head, Link, useForm } from '@inertiajs/react'
 
 export default function Register() {
-    const { data, setData, post, processing, errors, reset } = useForm({
-        name: '',
-        email: '',
-        password: '',
-        password_confirmation: '',
-    });
+  const { data, setData, post, processing, errors, reset } = useForm({
+    name: '',
+    email: '',
+    password: '',
+    password_confirmation: '',
+  })
 
-    const submit = (e) => {
-        e.preventDefault();
+  const submit = (e) => {
+    e.preventDefault()
+    post(route('register'), { onFinish: () => reset('password', 'password_confirmation') })
+  }
 
-        post(route('register'), {
-            onFinish: () => reset('password', 'password_confirmation'),
-        });
-    };
+  return (
+    <GuestLayout>
+      <Head title="Register" />
 
-    return (
-        <GuestLayout>
-            <Head title="Register" />
+      <div className="min-h-screen grid place-items-center bg-[#0b1228] px-4">
+        <section className="w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-[#0f1731] shadow">
+          {/* Header */}
+          <div className="border-b border-white/10 bg-gradient-to-r from-cyan-400/10 to-teal-400/10 px-6 py-5">
+            <h1 className="text-lg font-semibold tracking-tight text-white">Create your DevTrack account</h1>
+            <p className="mt-1 text-xs text-white/60">Manage your projects and issues efficiently.</p>
+          </div>
 
-            {/* Main Registration Form */}
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-600 px-4">
-                <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 space-y-6">
-                    <h1 className="text-2xl font-bold text-gray-900 text-center">Create your DevTrack account</h1>
-                    <p className="text-gray-600 text-center">Manage your projects and issues efficiently</p>
+          {/* Body */}
+          <div className="p-6">
+            <form onSubmit={submit} className="space-y-4">
+              {/* Name */}
+              <div>
+                <InputLabel htmlFor="name" value="Name" className="text-white/80" />
+                <TextInput
+                  id="name"
+                  name="name"
+                  value={data.name}
+                  onChange={(e) => setData('name', e.target.value)}
+                  autoComplete="name"
+                  isFocused
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-white/30 outline-none focus:border-cyan-400/60"
+                  placeholder="Your full name"
+                  required
+                />
+                <InputError message={errors.name} className="mt-2 text-rose-400" />
+              </div>
 
-                    <form onSubmit={submit} className="space-y-4">
-                        {/* Name */}
-                        <div>
-                            <InputLabel htmlFor="name" value="Name" />
-                            <TextInput
-                                id="name"
-                                name="name"
-                                value={data.name}
-                                className="mt-1 block w-full"
-                                autoComplete="name"
-                                isFocused={true}
-                                onChange={(e) => setData('name', e.target.value)}
-                                required
-                            />
-                            <InputError message={errors.name} className="mt-2" />
-                        </div>
+              {/* Email */}
+              <div>
+                <InputLabel htmlFor="email" value="Email" className="text-white/80" />
+                <TextInput
+                  id="email"
+                  type="email"
+                  name="email"
+                  value={data.email}
+                  onChange={(e) => setData('email', e.target.value)}
+                  autoComplete="username"
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-white/30 outline-none focus:border-cyan-400/60"
+                  placeholder="you@example.com"
+                  required
+                />
+                <InputError message={errors.email} className="mt-2 text-rose-400" />
+              </div>
 
-                        {/* Email */}
-                        <div className="mt-4">
-                            <InputLabel htmlFor="email" value="Email" />
-                            <TextInput
-                                id="email"
-                                type="email"
-                                name="email"
-                                value={data.email}
-                                className="mt-1 block w-full"
-                                autoComplete="username"
-                                onChange={(e) => setData('email', e.target.value)}
-                                required
-                            />
-                            <InputError message={errors.email} className="mt-2" />
-                        </div>
+              {/* Password */}
+              <div>
+                <InputLabel htmlFor="password" value="Password" className="text-white/80" />
+                <TextInput
+                  id="password"
+                  type="password"
+                  name="password"
+                  value={data.password}
+                  onChange={(e) => setData('password', e.target.value)}
+                  autoComplete="new-password"
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-white/30 outline-none focus:border-cyan-400/60"
+                  placeholder="••••••••"
+                  required
+                />
+                <InputError message={errors.password} className="mt-2 text-rose-400" />
+              </div>
 
-                        {/* Password */}
-                        <div className="mt-4">
-                            <InputLabel htmlFor="password" value="Password" />
-                            <TextInput
-                                id="password"
-                                type="password"
-                                name="password"
-                                value={data.password}
-                                className="mt-1 block w-full"
-                                autoComplete="new-password"
-                                onChange={(e) => setData('password', e.target.value)}
-                                required
-                            />
-                            <InputError message={errors.password} className="mt-2" />
-                        </div>
+              {/* Confirm Password */}
+              <div>
+                <InputLabel htmlFor="password_confirmation" value="Confirm Password" className="text-white/80" />
+                <TextInput
+                  id="password_confirmation"
+                  type="password"
+                  name="password_confirmation"
+                  value={data.password_confirmation}
+                  onChange={(e) => setData('password_confirmation', e.target.value)}
+                  autoComplete="new-password"
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-white/30 outline-none focus:border-cyan-400/60"
+                  placeholder="••••••••"
+                  required
+                />
+                <InputError message={errors.password_confirmation} className="mt-2 text-rose-400" />
+              </div>
 
-                        {/* Confirm Password */}
-                        <div className="mt-4">
-                            <InputLabel htmlFor="password_confirmation" value="Confirm Password" />
-                            <TextInput
-                                id="password_confirmation"
-                                type="password"
-                                name="password_confirmation"
-                                value={data.password_confirmation}
-                                className="mt-1 block w-full"
-                                autoComplete="new-password"
-                                onChange={(e) => setData('password_confirmation', e.target.value)}
-                                required
-                            />
-                            <InputError message={errors.password_confirmation} className="mt-2" />
-                        </div>
+              {/* Actions */}
+              <div className="mt-2 flex items-center justify-between">
+                <Link
+                  href={route('login')}
+                  className="text-sm text-cyan-300 underline decoration-cyan-400/40 underline-offset-4 hover:text-cyan-200"
+                >
+                  Already registered?
+                </Link>
 
-                        {/* Submit Button */}
-                        <div className="mt-4 flex items-center justify-end">
-                            <Link
-                                href={route('login')}
-                                className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                            >
-                                Already registered?
-                            </Link>
-
-                            <PrimaryButton className="ms-4" disabled={processing}>
-                                Register
-                            </PrimaryButton>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </GuestLayout>
-    );
+                <PrimaryButton
+                  disabled={processing}
+                  className="!bg-gradient-to-r !from-cyan-400 !to-teal-400 !text-black hover:from-cyan-300 hover:to-teal-300"
+                >
+                  {processing ? 'Creating account…' : 'Register'}
+                </PrimaryButton>
+              </div>
+            </form>
+          </div>
+        </section>
+      </div>
+    </GuestLayout>
+  )
 }

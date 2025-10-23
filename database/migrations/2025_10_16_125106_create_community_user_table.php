@@ -19,6 +19,8 @@ return new class extends Migration
             $table->foreignId('user_id')
                   ->constrained()
                   ->cascadeOnDelete(); // Delete pivot if user deleted
+            $table->unique(['community_id', 'user_id']);
+
             $table->string('role')->nullable(); // Example: UI Dev, Backend
             $table->enum('status', ['pending','accepted','rejected'])->default('pending');
             $table->timestamps();

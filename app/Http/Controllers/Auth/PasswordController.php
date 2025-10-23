@@ -3,27 +3,26 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
+use App\Http\Requests\Profile\UpdatePasswordRequest;
+use App\Notifications\PasswordChanged;  
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Facades\Redirect;
 
 class PasswordController extends Controller
 {
-    /**
-     * Update the user's password.
-     */
-    public function update(Request $request): RedirectResponse
+    
+    public function update(UpdatePasswordRequest $request)
     {
-        $validated = $request->validate([
-            'current_password' => ['required', 'current_password'],
-            'password' => ['required', Password::defaults(), 'confirmed'],
-        ]);
+        $user = $request->user();
+        $user->forceFill([
+            'password' => Hash::make($request->validated()['password']),
+        ])->save();
 
-        $request->user()->update([
-            'password' => Hash::make($validated['password']),
-        ]);
+               // notify user by email (optional but recommended)
+        if (method_exists($user, 'notify')) {
+            $user->notify(new PasswordChanged());
+        };
 
-        return back();
+        return Redirect::route('profile.edit')->with('success', 'Password updated.');
     }
 }

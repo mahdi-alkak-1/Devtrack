@@ -17,7 +17,9 @@ return new class extends Migration
             $table->string('key', 10)->unique(); 
             $table->text('description')->nullable();
             $table->foreignId('owner_id')->constrained('users')->onDelete('cascade'); 
-            $table->timestamps();
+            $table->foreignId('community_id')->nullable();
+            $table->index('community_id');
+            $table->timestamps();   
         });
     }
 
