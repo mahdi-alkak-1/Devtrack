@@ -51,9 +51,7 @@ Route::middleware(['auth', 'verified'])->post('/projects', [
 Route::middleware(['auth', 'verified'])->get('/projects/{project}', [
     ProjectController::class, 'show'
 ])->name('projects.show');
-Route::middleware(['auth', 'verified'])->get('/projects/{project}/issues', [
-    IssueController::class, 'index'
-])->name('projects.issues.index');
+
 Route::middleware(['auth', 'verified'])->post('/projects/{project}/issues', [
     IssueController::class, 'store'
     ])->name('projects.issues.store');
@@ -63,9 +61,7 @@ Route::middleware(['auth', 'verified'])->patch('/projects/{project}', [
 Route::middleware(['auth', 'verified'])->patch('/projects/{project}/issues/{issue}', [
     IssueController::class, 'update'])
     ->name('projects.issues.update');
-Route::middleware(['auth', 'verified'])->get('/projects/{project}/issues/{issue}', [
-    IssueController::class, 'show'])
-    ->name('projects.issues.show');
+
 Route::middleware(['auth', 'verified'])->delete('/projects/{project}/issues/{issue}', [
     IssueController::class, 'destroy'])
     ->name('projects.issues.destroy');
