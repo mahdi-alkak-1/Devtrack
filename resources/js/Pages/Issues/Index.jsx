@@ -43,6 +43,15 @@ export default function Index({ project, issues, me, filters, assignees = [] }) 
     post(`/projects/${project.id}/issues`, {
       onSuccess: () => reset('title', 'description', 'due_date', 'assignee_id'),
       preserveScroll: true,
+      onError: (errs) => {
+        // surfaces validation errors immediately in DevTools
+        console.error('Create issue validation errors:', errs)
+        alert('Could not create issue: ' + (errs?.assignee_id || errs?.title || 'check console'))
+      },
+      onFinish: () => {
+        // helpful breadcrumb while debugging
+        console.log('Create issue request finished')
+      }
     })
   }
 
@@ -197,7 +206,11 @@ export default function Index({ project, issues, me, filters, assignees = [] }) 
             <select
               className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-cyan-400/60"
               value={data.assignee_id}
-              onChange={(e) => setData('assignee_id', e.target.value)}
+              onChange={(e) => 
+                {
+                  const v = e.target.value
+                  setData('assignee_id', v === '' ? '' : String(v))
+                }}
             >
               {createAssigneeOptions.map(opt => (
                 <option key={opt.id || 'none'} value={opt.id} className="bg-[#0f1731]">

@@ -13,6 +13,8 @@ use App\Http\Requests\StoreIssueRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use App\Notifications\IssueAssigned;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;  
 use App\Notifications\IssueStatusChanged;
 
 class IssueController extends Controller
@@ -116,6 +118,7 @@ class IssueController extends Controller
     }
 
     // POST /projects/{project}/issues
+   // POST /projects/{project}/issues
     public function store(StoreIssueRequest $request, Project $project): RedirectResponse
     {
         if ($project->owner_id !== Auth::id()) {
@@ -124,15 +127,24 @@ class IssueController extends Controller
 
         $data = $request->validated();
 
-        // If assignee provided, ensure they belong to the project's community
-        if (!empty($data['assignee_id']) && $project->community_id) {
-            $isMember = DB::table('community_user')
-                ->where('community_id', $project->community_id)
-                ->where('user_id', $data['assignee_id'])
-                ->where('status', 'accepted')
-                ->exists();
-            if (!$isMember) {
-                return back()->with('error', 'Selected user is not in this project’s community.');
+        // --- Normalize assignee_id ---
+        $assigneeId = $request->filled('assignee_id')
+            ? (int) $request->input('assignee_id')
+            : null;
+        $data['assignee_id'] = $assigneeId;
+
+        // --- Guard: assignee must be member of the project's community (except owner self-assign) ---
+        if ($assigneeId && $project->community_id) {
+            if ($assigneeId !== (int) $project->owner_id) {
+                $isMember = DB::table('community_user')
+                    ->where('community_id', $project->community_id)
+                    ->where('user_id', $assigneeId)
+                    ->where('status', 'accepted')
+                    ->exists();
+
+                if (!$isMember) {
+                    return back()->with('error', 'Selected user is not in this project’s community.');
+                }
             }
         }
 
@@ -153,10 +165,10 @@ class IssueController extends Controller
         });
 
         // Notify assignee if set
-        if ($createdIssue && !empty($data['assignee_id'])) {
-            $assignee = User::find($data['assignee_id']);
+        if ($createdIssue && $assigneeId) {
+            $assignee = \App\Models\User::find($assigneeId);
             if ($assignee) {
-                $assignee->notify(new IssueAssigned($createdIssue));
+                $assignee->notify(new \App\Notifications\IssueAssigned($createdIssue));
             }
         }
 
@@ -165,17 +177,19 @@ class IssueController extends Controller
             ->with('success', 'Issue created successfully.');
     }
 
+
     // PATCH /projects/{project}/issues/{issue}
 // app/Http/Controllers/IssueController.php
 
+   // PATCH /projects/{project}/issues/{issue}
     public function update(Request $request, Project $project, Issue $issue): RedirectResponse
     {
-        // 1) Integrity: make sure this issue belongs to this project
+        // 1) Integrity
         if ($issue->project_id !== $project->id) {
             abort(404, 'Issue not found in this project.');
         }
 
-        // 2) Authorization: allow project owner OR the assignee
+        // 2) Authorization (owner or current assignee)
         $userId     = Auth::id();
         $isOwner    = $project->owner_id === $userId;
         $isAssignee = $issue->assignee_id === $userId;
@@ -184,34 +198,39 @@ class IssueController extends Controller
             abort(403, 'You do not have access to update this issue.');
         }
 
-        // 3) Validation: owner can change assignee; assignee can change status/priority
+        // 3) Validation rules
         $rules = [
             'status'   => ['nullable', 'in:todo,in_progress,done'],
             'priority' => ['nullable', 'in:low,medium,high'],
         ];
         if ($isOwner) {
-            $rules['assignee_id'] = ['nullable', 'exists:users,id'];
+            $rules['assignee_id'] = ['nullable']; // we'll normalize & check manually
         }
         $data = $request->validate($rules);
 
-        // 4) If owner is changing assignee, ensure that user is in the project's community (if any)
-        if (
-            $isOwner &&
-            array_key_exists('assignee_id', $data) &&
-            !is_null($data['assignee_id']) &&
-            $project->community_id
-        ) {
-            $isMember = DB::table('community_user')
-                ->where('community_id', $project->community_id)
-                ->where('user_id', $data['assignee_id'])
-                ->where('status', 'accepted')
-                ->exists();
+        // --- Normalize assignee_id when owner sends it ---
+        if ($isOwner && $request->has('assignee_id')) {
+            $assigneeId = $request->input('assignee_id');
+            $assigneeId = ($assigneeId === '' || $assigneeId === null) ? null : (int) $assigneeId;
+            $data['assignee_id'] = $assigneeId;
 
-            if (!$isMember) {
-                return back()->with('error', 'Selected user is not in this project’s community.');
+            // Guard membership (except owner self-assign)
+            if (!is_null($assigneeId) && $project->community_id) {
+                if ($assigneeId !== (int) $project->owner_id) {
+                    $isMember = DB::table('community_user')
+                        ->where('community_id', $project->community_id)
+                        ->where('user_id', $assigneeId)
+                        ->where('status', 'accepted')
+                        ->exists();
+
+                    if (!$isMember) {
+                        return back()->with('error', 'Selected user is not in this project’s community.');
+                    }
+                }
             }
         }
 
+        // Nothing to update?
         if (empty(array_filter($data, fn ($v) => !is_null($v)))) {
             return back()->with('error', 'Nothing to update.');
         }
@@ -219,10 +238,10 @@ class IssueController extends Controller
         $oldStatus   = $issue->status;
         $oldAssignee = $issue->assignee_id;
 
-        // 5) Apply updates
+        // 4) Apply updates
         $issue->update(array_filter($data, fn ($v) => !is_null($v)));
 
-        // 6) Notify new assignee (only if owner changed assignee)
+        // 5) Notify new assignee if owner changed it
         if ($isOwner && array_key_exists('assignee_id', $data) && $data['assignee_id'] && (int)$data['assignee_id'] !== (int)$oldAssignee) {
             $assignee = \App\Models\User::find($data['assignee_id']);
             if ($assignee) {
@@ -230,7 +249,7 @@ class IssueController extends Controller
             }
         }
 
-        // 7) Notify owner when status becomes 'done' (assignee completing work)
+        // 6) Notify owner when status becomes 'done'
         if (isset($data['status']) && $oldStatus !== $data['status'] && $data['status'] === 'done') {
             $owner = $project->owner;
             if ($owner) {
@@ -238,7 +257,6 @@ class IssueController extends Controller
             }
         }
 
-        // From My Work we do a partial reload, so redirecting back is fine
         return back()->with('success', 'Issue updated.');
     }
 

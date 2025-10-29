@@ -19,7 +19,7 @@ class StoreIssueRequest extends FormRequest
             'status'      => ['nullable', 'in:todo,in_progress,done'], // limit to known statuses
             'priority'    => ['nullable', 'in:low,medium,high'],   // simple 3-level priority
             'due_date'    => ['nullable', 'date'],                 // optional date like 2025-10-31
-            'assignee_id' => ['nullable', 'exists:users,id'],      // if provided, must be a real user id
+            'assignee_id' => ['nullable','integer', 'exists:users,id'],      // if provided, must be a real user id
         ];
     }
 }

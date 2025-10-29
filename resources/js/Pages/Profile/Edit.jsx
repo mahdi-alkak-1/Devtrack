@@ -1,9 +1,10 @@
+// resources/js/Pages/Profile/Edit.jsx
 import { Head, useForm, usePage, router } from '@inertiajs/react'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout'
 import { useState } from 'react'
 
 export default function Edit() {
-  const { auth, errors, mustVerifyEmail, status } = usePage().props || {}
+  const { auth, mustVerifyEmail, status } = usePage().props || {}
   const user = auth?.user
 
   // ----- Profile (name/email) form -----
@@ -13,7 +14,6 @@ export default function Edit() {
     patch: patchProfile,
     processing: savingProfile,
     errors: profileErrors,
-    reset: resetProfile,
   } = useForm({
     name: user?.name || '',
     email: user?.email || '',
@@ -21,9 +21,7 @@ export default function Edit() {
 
   function submitProfile(e) {
     e.preventDefault()
-    patchProfile(route('profile.update'), {
-      preserveScroll: true,
-    })
+    patchProfile(route('profile.update'), { preserveScroll: true })
   }
 
   // ----- Password form -----
@@ -48,7 +46,7 @@ export default function Edit() {
     })
   }
 
-  // resend email verification
+  // ----- Resend verification -----
   const [sendingVerification, setSendingVerification] = useState(false)
   function resendVerification(e) {
     e.preventDefault()
@@ -63,114 +61,145 @@ export default function Edit() {
     <AuthenticatedLayout>
       <Head title="Edit Profile" />
 
-      <h1 className="mb-6 text-2xl font-semibold">Profile</h1>
+      {/* Page Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold text-white">Profile</h1>
+        <p className="mt-1 text-sm text-white/60">
+          Update your personal information and manage your password.
+        </p>
+      </div>
 
-      {/* Flash success */}
+      {/* Global status (verification link sent) */}
       {status === 'verification-link-sent' && (
-        <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+        <div className="mb-5 rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-200">
           A new verification link has been sent to your email address.
         </div>
       )}
 
-      {/* Profile Card */}
-      <section className="mb-8 rounded-xl border bg-white p-6 shadow-sm">
-        <h2 className="mb-3 text-lg font-medium">Profile Information</h2>
-        {mustVerifyEmail && user?.email_verified_at == null && (
-          <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-800">
-            Your email address is unverified.
-            <button
-              onClick={resendVerification}
-              disabled={sendingVerification}
-              className="ml-3 underline hover:text-amber-900 disabled:opacity-60"
-            >
-              {sendingVerification ? 'Sending…' : 'Click here to re-send the verification email.'}
-            </button>
-          </div>
-        )}
-
-        <form onSubmit={submitProfile} className="grid grid-cols-1 gap-4 md:max-w-lg">
-          <div>
-            <label className="block text-sm font-medium">Name</label>
-            <input
-              className="mt-1 w-full rounded border px-3 py-2"
-              value={profile.name}
-              onChange={(e) => setProfile('name', e.target.value)}
-            />
-            {profileErrors?.name && <p className="mt-1 text-sm text-rose-600">{profileErrors.name}</p>}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Profile Card */}
+        <section className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.03] p-6 shadow">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-white">Profile Information</h2>
+            <p className="mt-1 text-sm text-white/60">
+              Your name and email as they’ll appear in the app.
+            </p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium">Email</label>
-            <input
-              type="email"
-              className="mt-1 w-full rounded border px-3 py-2"
-              value={profile.email}
-              onChange={(e) => setProfile('email', e.target.value)}
-            />
-            {profileErrors?.email && <p className="mt-1 text-sm text-rose-600">{profileErrors.email}</p>}
+          {mustVerifyEmail && user?.email_verified_at == null && (
+            <div className="mb-4 rounded-xl border border-amber-400/30 bg-amber-500/10 p-3 text-sm text-amber-200">
+              Your email address is <span className="font-semibold">unverified</span>.
+              <button
+                onClick={resendVerification}
+                disabled={sendingVerification}
+                className="ml-2 rounded-md border border-amber-400/30 bg-amber-400/10 px-2 py-1 text-amber-100 underline-offset-2 hover:bg-amber-400/20 disabled:opacity-60"
+              >
+                {sendingVerification ? 'Sending…' : 'Resend verification email'}
+              </button>
+            </div>
+          )}
+
+          <form onSubmit={submitProfile} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-white/80">Name</label>
+              <input
+                className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-white/30 outline-none focus:border-cyan-400/60"
+                value={profile.name}
+                onChange={(e) => setProfile('name', e.target.value)}
+                placeholder="Your full name"
+              />
+              {profileErrors?.name && (
+                <p className="mt-1 text-sm text-rose-400">{profileErrors.name}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white/80">Email</label>
+              <input
+                type="email"
+                className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-white/30 outline-none focus:border-cyan-400/60"
+                value={profile.email}
+                onChange={(e) => setProfile('email', e.target.value)}
+                placeholder="you@example.com"
+              />
+              {profileErrors?.email && (
+                <p className="mt-1 text-sm text-rose-400">{profileErrors.email}</p>
+              )}
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={savingProfile}
+                className="w-full rounded-lg bg-gradient-to-r from-cyan-400 to-teal-400 px-4 py-2 text-sm font-semibold text-black transition hover:from-cyan-300 hover:to-teal-300 disabled:opacity-50"
+              >
+                {savingProfile ? 'Saving…' : 'Save Changes'}
+              </button>
+            </div>
+          </form>
+        </section>
+
+        {/* Password Card */}
+        <section className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.03] p-6 shadow">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-white">Change Password</h2>
+            <p className="mt-1 text-sm text-white/60">
+              Use a strong password you haven’t used elsewhere.
+            </p>
           </div>
 
-          <div className="pt-2">
-            <button
-              type="submit"
-              disabled={savingProfile}
-              className="rounded bg-black px-4 py-2 text-white disabled:opacity-50"
-            >
-              {savingProfile ? 'Saving…' : 'Save'}
-            </button>
-          </div>
-        </form>
-      </section>
+          <form onSubmit={submitPassword} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-white/80">Current Password</label>
+              <input
+                type="password"
+                className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-white/30 outline-none focus:border-cyan-400/60"
+                value={pwd.current_password}
+                onChange={(e) => setPwd('current_password', e.target.value)}
+                placeholder="••••••••"
+              />
+              {pwdErrors?.current_password && (
+                <p className="mt-1 text-sm text-rose-400">{pwdErrors.current_password}</p>
+              )}
+            </div>
 
-      {/* Password Card */}
-      <section className="rounded-xl border bg-white p-6 shadow-sm md:max-w-lg">
-        <h2 className="mb-3 text-lg font-medium">Change Password</h2>
-        <form onSubmit={submitPassword} className="grid grid-cols-1 gap-4">
-          <div>
-            <label className="block text-sm font-medium">Current Password</label>
-            <input
-              type="password"
-              className="mt-1 w-full rounded border px-3 py-2"
-              value={pwd.current_password}
-              onChange={(e) => setPwd('current_password', e.target.value)}
-            />
-            {pwdErrors?.current_password && (
-              <p className="mt-1 text-sm text-rose-600">{pwdErrors.current_password}</p>
-            )}
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-white/80">New Password</label>
+              <input
+                type="password"
+                className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-white/30 outline-none focus:border-cyan-400/60"
+                value={pwd.password}
+                onChange={(e) => setPwd('password', e.target.value)}
+                placeholder="At least 8 characters"
+              />
+              {pwdErrors?.password && (
+                <p className="mt-1 text-sm text-rose-400">{pwdErrors.password}</p>
+              )}
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium">New Password</label>
-            <input
-              type="password"
-              className="mt-1 w-full rounded border px-3 py-2"
-              value={pwd.password}
-              onChange={(e) => setPwd('password', e.target.value)}
-            />
-            {pwdErrors?.password && <p className="mt-1 text-sm text-rose-600">{pwdErrors.password}</p>}
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-white/80">Confirm New Password</label>
+              <input
+                type="password"
+                className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white placeholder-white/30 outline-none focus:border-cyan-400/60"
+                value={pwd.password_confirmation}
+                onChange={(e) => setPwd('password_confirmation', e.target.value)}
+                placeholder="Repeat new password"
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium">Confirm New Password</label>
-            <input
-              type="password"
-              className="mt-1 w-full rounded border px-3 py-2"
-              value={pwd.password_confirmation}
-              onChange={(e) => setPwd('password_confirmation', e.target.value)}
-            />
-          </div>
-
-          <div className="pt-2">
-            <button
-              type="submit"
-              disabled={savingPwd}
-              className="rounded bg-black px-4 py-2 text-white disabled:opacity-50"
-            >
-              {savingPwd ? 'Updating…' : 'Update Password'}
-            </button>
-          </div>
-        </form>
-      </section>
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={savingPwd}
+                className="w-full rounded-lg bg-gradient-to-r from-cyan-400 to-teal-400 px-4 py-2 text-sm font-semibold text-black transition hover:from-cyan-300 hover:to-teal-300 disabled:opacity-50"
+              >
+                {savingPwd ? 'Updating…' : 'Update Password'}
+              </button>
+            </div>
+          </form>
+        </section>
+      </div>
     </AuthenticatedLayout>
   )
 }

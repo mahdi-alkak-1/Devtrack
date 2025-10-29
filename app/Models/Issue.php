@@ -19,6 +19,12 @@ class Issue extends Model
         'priority',
         'due_date',
     ];
+        protected $casts = [
+        'project_id'  => 'integer',
+        'number'      => 'integer',
+        'assignee_id' => 'integer',
+        'due_date'    => 'date',
+    ];
 
     public function project()
     {
