@@ -404,7 +404,7 @@ export default function Show({ project, issues = [], me, assignees = [], filters
         >
           {/* backdrop */}
           <div
-            className="absolute inset-0 bg-black/40"
+            className="absolute inset-0 bg-black/80"
             onClick={() => { setHoverOpen(false); setHoveredId(null) }}
           />
           {/* card */}
