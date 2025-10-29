@@ -26,9 +26,23 @@ export default function AuthenticatedLayout({ header, children }) {
     })
   }
 
+  // When clicking "Open" on a notification:
+  // 1) mark it read
+  // 2) navigate to the notification's target URL (payload) or fall back to /my-work
   function openNotif(n) {
+    const target = n?.data?.url || '/my-work'
     setShowNotifsPanel(false)
-    router.post(`/notifications/${n.id}/read`, {}, { preserveScroll: true })
+    router.post(
+      `/notifications/${n.id}/read`,
+      {},
+      {
+        preserveScroll: true,
+        onSuccess: () => {
+          // keep UI fresh if you badge-count from props
+          router.get(target, {}, { preserveScroll: true })
+        },
+      }
+    )
   }
 
   // Plain helper (no hooks inside functions)
@@ -74,7 +88,7 @@ export default function AuthenticatedLayout({ header, children }) {
           <button
             type="button"
             onClick={() => setShowInvitesPanel(s => !s)}
-            className="inline-flex items-center justify-center rounded-md p-2 text-white/80 hover:bg-white/10"
+            className="inline-flex items-center justify-center rounded-md p-2 text-white/80 hover:bg白/10"
             aria-label="Invitations"
             title="Invitations"
           >
@@ -93,9 +107,9 @@ export default function AuthenticatedLayout({ header, children }) {
           {/* Main nav (desktop) */}
           <div className="ml-2 hidden items-center gap-1.5 text-sm sm:flex">
             <Link href="/dashboard" className="rounded-md px-3 py-2 text-white/80 hover:bg-white/10 hover:text-white">Dashboard</Link>
-            <Link href="/projects" className="rounded-md px-3 py-2 text-white/80 hover:bg-white/10 hover:text-white">Projects</Link>
-            <Link href="/communities" className="rounded-md px-3 py-2 text-white/80 hover:bg-white/10 hover:text-white">Communities</Link>
-            <Link href="/my-work" className="rounded-md px-3 py-2 text-white/80 hover:bg-white/10 hover:text-white">My Work</Link>
+            <Link href="/projects" className="rounded-md px-3 py-2 text-white/80 hover:bg白/10 hover:text-white">Projects</Link>
+            <Link href="/communities" className="rounded-md px-3 py-2 text-white/80 hover:bg白/10 hover:text-white">Communities</Link>
+            <Link href="/my-work" className="rounded-md px-3 py-2 text-white/80 hover:bg白/10 hover:text-white">My Work</Link>
           </div>
 
           <div className="mr-auto flex-1" />
@@ -125,7 +139,7 @@ export default function AuthenticatedLayout({ header, children }) {
               <Dropdown>
                 <Dropdown.Trigger>
                   <span className="inline-flex rounded-md">
-                    <button className="inline-flex items-center rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white/80 shadow hover:bg-white/10">
+                    <button className="inline-flex items-center rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-sm text白/80 shadow hover:bg白/10">
                       Menu
                       <svg className="ml-2 h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clipRule="evenodd" />
@@ -135,7 +149,7 @@ export default function AuthenticatedLayout({ header, children }) {
                 </Dropdown.Trigger>
                 <Dropdown.Content className="rounded-md bg-[#0f1731] py-1 shadow-lg ring-1 ring-white/10">
                   <Dropdown.Link href="/profile" className="block px-4 py-2 text-sm text-white/80 hover:bg-white/5">Profile</Dropdown.Link>
-                  <Dropdown.Link href="/logout" method="post" as="button" className="block px-4 py-2 text-sm text-white/80 hover:bg-white/5">Log Out</Dropdown.Link>
+                  <Dropdown.Link href="/logout" method="post" as="button" className="block px-4 py-2 text-sm text-white/80 hover:bg白/5">Log Out</Dropdown.Link>
                 </Dropdown.Content>
               </Dropdown>
             </div>
@@ -145,11 +159,11 @@ export default function AuthenticatedLayout({ header, children }) {
           <div className="-mr-2 ml-1 flex items-center sm:hidden">
             <button
               onClick={() => setMobileNavOpen(true)}
-              className="group relative h-10 w-10 rounded-md p-2 text-white/85 hover:bg-white/10"
+              className="group relative h-10 w-10 rounded-md p-2 text-white/85 hover:bg白/10"
               aria-label="Open menu"
             >
               <span className={`absolute left-1/2 top-[11px] h-[2px] w-5 -translate-x-1/2 transform bg-white transition-all duration-300 ${mobileNavOpen ? 'translate-y-[3px] rotate-45' : ''}`}/>
-              <span className={`absolute left-1/2 top-[17px] h-[2px] w-5 -translate-x-1/2 transform bg-white transition-all duration-300 ${mobileNavOpen ? '-translate-y-[3px] -rotate-45' : ''}`}/>
+              <span className={`absolute left-1/2 top-[17px] h-[2px] w-5 -translate-x-1/2 transform bg白 transition-all duration-300 ${mobileNavOpen ? '-translate-y-[3px] -rotate-45' : ''}`}/>
             </button>
           </div>
         </nav>
@@ -160,14 +174,14 @@ export default function AuthenticatedLayout({ header, children }) {
         <>
           <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={() => setMobileNavOpen(false)} />
           <aside className="fixed left-0 top-0 z-50 h-full w-[300px]">
-            <div className="flex h-full flex-col overflow-hidden rounded-r-2xl border-r border-white/10 bg-[#0e1630]/90 shadow-[0_10px_40px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+            <div className="flex h-full flex-col overflow-hidden rounded-r-2xl border-r border白/10 bg-[#0e1630]/90 shadow-[0_10px_40px_rgba(0,0,0,0.5)] backdrop-blur-xl">
               <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
                 <div className="flex items-center gap-2">
                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-teal-500 text-black">DT</span>
                   <span className="text-sm font-semibold text-white/90">DevTrack</span>
                 </div>
                 <button
-                  className="rounded p-1 text-white/70 hover:bg-white/10"
+                  className="rounded p-1 text-white/70 hover:bg白/10"
                   onClick={() => setMobileNavOpen(false)}
                   aria-label="Close menu"
                 >
@@ -176,16 +190,16 @@ export default function AuthenticatedLayout({ header, children }) {
               </div>
 
               <nav className="flex-1 space-y-1 p-3">
-                <ResponsiveNavLink href="/dashboard" className="block rounded-lg px-3 py-2 text-white/85 hover:bg-white/10">Dashboard</ResponsiveNavLink>
-                <ResponsiveNavLink href="/projects" className="block rounded-lg px-3 py-2 text-white/85 hover:bg-white/10">Projects</ResponsiveNavLink>
-                <ResponsiveNavLink href="/communities" className="block rounded-lg px-3 py-2 text-white/85 hover:bg-white/10">Communities</ResponsiveNavLink>
-                <ResponsiveNavLink href="/my-work" className="block rounded-lg px-3 py-2 text-white/85 hover:bg-white/10">My Work</ResponsiveNavLink>
-                <div className="my-2 h-px bg-white/10" />
+                <ResponsiveNavLink href="/dashboard" className="block rounded-lg px-3 py-2 text-white/85 hover:bg白/10">Dashboard</ResponsiveNavLink>
+                <ResponsiveNavLink href="/projects" className="block rounded-lg px-3 py-2 text白/85 hover:bg白/10">Projects</ResponsiveNavLink>
+                <ResponsiveNavLink href="/communities" className="block rounded-lg px-3 py-2 text白/85 hover:bg白/10">Communities</ResponsiveNavLink>
+                <ResponsiveNavLink href="/my-work" className="block rounded-lg px-3 py-2 text白/85 hover:bg白/10">My Work</ResponsiveNavLink>
+                <div className="my-2 h-px bg白/10" />
                 <div className="px-3">
-                  <div className="text-xs uppercase tracking-wide text-white/40">Account</div>
+                  <div className="text-xs uppercase tracking-wide text白/40">Account</div>
                 </div>
-                <ResponsiveNavLink href="/profile" className="block rounded-lg px-3 py-2 text-white/85 hover:bg-white/10">Profile</ResponsiveNavLink>
-                <ResponsiveNavLink href="/logout" method="post" as="button" className="block rounded-lg px-3 py-2 text-white/85 hover:bg-white/10">Log Out</ResponsiveNavLink>
+                <ResponsiveNavLink href="/profile" className="block rounded-lg px-3 py-2 text白/85 hover:bg白/10">Profile</ResponsiveNavLink>
+                <ResponsiveNavLink href="/logout" method="post" as="button" className="block rounded-lg px-3 py-2 text白/85 hover:bg白/10">Log Out</ResponsiveNavLink>
               </nav>
             </div>
           </aside>
@@ -211,7 +225,7 @@ export default function AuthenticatedLayout({ header, children }) {
                     <p className="text-[11px] text-white/50">{notifications?.unreadCount ?? 0} unread</p>
                   </div>
                 </div>
-                <button className="rounded p-1 text-white/70 hover:bg-white/10" onClick={() => setShowNotifsPanel(false)} aria-label="Close">✕</button>
+                <button className="rounded p-1 text-white/70 hover:bg白/10" onClick={() => setShowNotifsPanel(false)} aria-label="Close">✕</button>
               </div>
 
               <div className="flex-1 overflow-y-auto p-3 sm:p-4">
@@ -227,12 +241,19 @@ export default function AuthenticatedLayout({ header, children }) {
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center justify-between gap-2">
-                                <span className="truncate text-sm text-white/90">{n.title || 'Notification'}</span>
+                                <span className="truncate text-sm text-white/90">
+                                  {n.title || n?.data?.title || 'Notification'}
+                                </span>
                                 <span className="shrink-0 text-[11px] text-white/50">{fmtRelative(n.created_at)}</span>
                               </div>
-                              <p className="mt-0.5 line-clamp-3 text-xs leading-5 text-white/70">{n.message}</p>
+                              <p className="mt-0.5 line-clamp-3 text-xs leading-5 text-white/70">
+                                {n.message || n?.data?.message}
+                              </p>
                               <div className="mt-2">
-                                <button onClick={() => openNotif(n)} className="rounded-md bg-gradient-to-r from-cyan-400 to-teal-400 px-3 py-1.5 text-[11px] font-medium text-black transition hover:from-cyan-300 hover:to-teal-300">
+                                <button
+                                  onClick={() => openNotif(n)}
+                                  className="rounded-md bg-gradient-to-r from-cyan-400 to-teal-400 px-3 py-1.5 text-[11px] font-medium text-black transition hover:from-cyan-300 hover:to-teal-300"
+                                >
                                   Open
                                 </button>
                               </div>

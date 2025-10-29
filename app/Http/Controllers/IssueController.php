@@ -172,9 +172,7 @@ class IssueController extends Controller
             }
         }
 
-        return redirect()
-            ->route('projects.issues.index', $project->id)
-            ->with('success', 'Issue created successfully.');
+        return back()->with('success', 'Issue created successfully.');
     }
 
 
@@ -273,9 +271,7 @@ class IssueController extends Controller
 
         $issue->delete();
 
-        return redirect()
-            ->route('projects.issues.index', $project->id)
-            ->with('success', 'Issue deleted.');
+        return back()->with('success', 'Issue deleted.');
     }
 
     // (kept if you use it elsewhere)

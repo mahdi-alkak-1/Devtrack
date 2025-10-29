@@ -5,14 +5,10 @@ namespace App\Notifications;
 use App\Models\Issue;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
-// If you decide to queue later:
-// use Illuminate\Contracts\Queue\ShouldQueue;
-// use Illuminate\Queue\SerializesModels;
 
 class IssueStatusChanged extends Notification
 {
     use Queueable;
-    // If queued: use SerializesModels and implement ShouldQueue
 
     public function __construct(public Issue $issue, public string $old, public string $new) {}
 
@@ -23,11 +19,19 @@ class IssueStatusChanged extends Notification
 
     public function toDatabase($notifiable): array
     {
-        $issue = $this->issue->loadMissing('project:id,name,key');
+        $issue   = $this->issue->loadMissing('project:id,name,key');
         $project = $issue->project;
+
+        $targetUrl = url('/my-work');
 
         return [
             'type'     => 'issue_status_changed',
+            'title'    => 'Issue status updated',
+            'message'  => $project
+                ? "{$project->key}-{$issue->number} “{$issue->title}” marked as {$this->new}"
+                : "Issue #{$issue->number} “{$issue->title}” marked as {$this->new}",
+            'url'      => $targetUrl,
+
             'issue'    => [
                 'id'     => $issue->id,
                 'number' => $issue->number,
@@ -40,10 +44,6 @@ class IssueStatusChanged extends Notification
                 'name' => $project->name,
                 'key'  => $project->key,
             ] : null,
-            'message'  => $project
-                ? "{$project->key}-{$issue->number} “{$issue->title}” marked as {$this->new}"
-                : "Issue #{$issue->number} “{$issue->title}” marked as {$this->new}",
-            'url'      => $project ? url("/projects/{$project->id}/issues/{$issue->id}") : null,
         ];
     }
 }

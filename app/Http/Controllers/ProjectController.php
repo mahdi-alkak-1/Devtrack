@@ -57,31 +57,83 @@ class ProjectController extends Controller
             ->with('success', 'Project created successfully.');
     }
 
-    public function show(Project $project): Response
+ 
+    public function show(Request $request, Project $project)
     {
-        $project->loadCount('issues')->load('owner:id,name,email','community:id,name');
+        // Read filters from query string
+        $status   = $request->query('status');
+        $priority = $request->query('priority');
+
+        // Eager-load what the page needs
+        $project->load(['community.owner:id,name']);
+
+        // Build the issues query with optional filters
+        $issuesQuery = $project->issues()
+            ->with(['assignee:id,name'])
+            ->latest('created_at');
+
+        if (in_array($status, ['todo', 'in_progress', 'done'], true)) {
+            $issuesQuery->where('status', $status);
+        }
+
+        if (in_array($priority, ['low', 'medium', 'high'], true)) {
+            $issuesQuery->where('priority', $priority);
+        }
 
         return Inertia::render('Projects/Show', [
-            'project' => [
-                'id'           => $project->id,
-                'name'         => $project->name,
-                'key'          => $project->key,
-                'description'  => $project->description,
-                'created_at'   => $project->created_at,
-                'issues_count' => $project->issues_count,
-                'owner'        => $project->owner ? [
-                    'id'    => $project->owner->id,
-                    'name'  => $project->owner->name,
-                    'email' => $project->owner->email,
-                ] : null,
-                'community'    => $project->community ? [
-                    'id'   => $project->community->id,
-                    'name' => $project->community->name,
+            // Use closures so partial reloads only compute what’s needed (e.g. 'issues')
+            'project' => fn () => [
+                'id'          => $project->id,
+                'name'        => $project->name,
+                'key'         => $project->key,
+                'description' => $project->description,
+                'owner_id'    => $project->owner_id,
+                'community_id'=> $project->community_id,
+                'community'   => $project->community ? [
+                    'id'    => $project->community->id,
+                    'name'  => $project->community->name,
+                    'owner' => $project->community->owner
+                        ? ['id' => $project->community->owner->id, 'name' => $project->community->owner->name]
+                        : null,
                 ] : null,
             ],
+
+            'issues' => fn () =>
+                $issuesQuery->get()->map(function ($i) {
+                    return [
+                        'id'          => $i->id,
+                        'number'      => $i->number,
+                        'title'       => $i->title,
+                        'description' => $i->description,
+                        'status'      => $i->status,
+                        'priority'    => $i->priority,
+                        'due_date'    => optional($i->due_date)?->toDateString(),
+                        'created_at'  => $i->created_at,
+                        'assignee_id' => $i->assignee_id,
+                        'assignee'    => $i->assignee ? [
+                            'id'   => $i->assignee->id,
+                            'name' => $i->assignee->name,
+                        ] : null,
+                    ];
+                }),
+
+            'assignees' => fn () => $project->community_id
+                ? $project->community
+                    ->users()
+                    ->wherePivot('status', 'accepted')
+                    ->get(['users.id', 'users.name'])
+                    ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name])
+                : collect(),
+
+            'filters' => [
+                'status'   => $status ?? '',
+                'priority' => $priority ?? '',
+            ],
+
+            'me'    => fn () => Auth::user()?->only(['id', 'name', 'email']),
+            'flash' => fn () => session()->only(['success', 'error']),
         ]);
     }
-
     public function update(UpdateProjectRequest $request, Project $project): RedirectResponse
     {
         if ($project->owner_id !== Auth::id()) {
