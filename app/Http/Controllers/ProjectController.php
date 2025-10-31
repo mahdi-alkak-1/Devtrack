@@ -26,13 +26,12 @@ class ProjectController extends Controller
 
     public function create(): Response
     {
+        $userId = Auth::id();
         // Accepted communities owned by or joined by the user
-        $myCommunities = Auth::user()
-            ->communities()
-            ->wherePivot('status', 'accepted')
-            ->select('communities.id','communities.name')
-            ->orderBy('communities.name')
-            ->get();
+        $myCommunities= Community::query()
+        ->where('owner_id', $userId)
+        ->orderBy('name')
+        ->get(['id', 'name']);
 
         return Inertia::render('Projects/Create', [
             'title'        => 'Create Project',
@@ -42,19 +41,44 @@ class ProjectController extends Controller
 
     public function store(StoreProjectRequest $request): RedirectResponse
     {
-        $data = $request->validated();
+        $userId = Auth::id();
+        
+        $data = $request->validate([
+            'name'        => ['required', 'string', 'max:255'],
+            'key'         => ['nullable', 'string', 'max:50'], // you removed unique
+            'description' => ['nullable', 'string'],
+            'community_id'=> ['nullable', 'integer'],
+        ]);
 
-        Project::create([
+        $communityId = $data['community_id'] ?? null;
+
+        if ($communityId) {
+            // 🔒 make sure this community is MINE (I am the owner)
+            $isMine = Community::query()
+                ->where('id', $communityId)
+                ->where('owner_id', $userId)
+                ->exists();
+
+            if (! $isMine) {
+                return back()
+                    ->withInput()
+                    ->withErrors([
+                        'community_id' => 'You can only attach projects to communities you own.',
+                    ]);
+            }
+        }
+
+        $project = Project::create([
             'name'         => $data['name'],
-            'key'          => strtoupper($data['key']),
+            'key'          => $data['key'] ?? null,
             'description'  => $data['description'] ?? null,
-            'owner_id'     => Auth::id(),
-            'community_id' => $data['community_id'] ?? null, // ← NEW
+            'owner_id'     => $userId,
+            'community_id' => $communityId,
         ]);
 
         return redirect()
-            ->route('projects.index')
-            ->with('success', 'Project created successfully.');
+            ->route('projects.show', $project->id)
+            ->with('success', 'Project created.');
     }
 
  
@@ -151,5 +175,17 @@ class ProjectController extends Controller
         return redirect()
             ->route('projects.show', $project->id)
             ->with('success', 'Project updated.');
+    }
+    public function destroy(Project $project): RedirectResponse
+    {
+        if ($project->owner_id !== Auth::id()) {
+            abort(403, 'You do not have access to this project.');
+        }
+
+        $project->delete();
+
+        return redirect()
+            ->route('projects.index')
+            ->with('success', 'Project deleted successfully.');
     }
 }

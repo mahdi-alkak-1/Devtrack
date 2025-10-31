@@ -51,6 +51,9 @@ Route::middleware(['auth', 'verified'])->post('/projects', [
 Route::middleware(['auth', 'verified'])->get('/projects/{project}', [
     ProjectController::class, 'show'
 ])->name('projects.show');
+Route::middleware(['auth', 'verified'])->delete('/projects/{project}', [
+    ProjectController::class, 'destroy'
+])->name('projects.destroy');
 
 Route::middleware(['auth', 'verified'])->post('/projects/{project}/issues', [
     IssueController::class, 'store'

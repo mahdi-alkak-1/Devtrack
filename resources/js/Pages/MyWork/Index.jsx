@@ -46,7 +46,7 @@ export default function MyWorkIndex({ issues = [] }) {
                       </div>
 
                       <Link
-                        href={`/projects/${i.project?.id ?? i.project_id}/issues/${i.id}`}
+                        href={`/projects/${i.project?.id ?? i.project_id}`}
                         className="mt-1 block truncate text-base font-medium text-white underline decoration-cyan-400/50 underline-offset-4 hover:decoration-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-400/60"
                       >
                         {i.project?.key}-{i.number}: {i.title}

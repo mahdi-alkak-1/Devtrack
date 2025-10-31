@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('projects', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('key', 10)->unique(); 
+            $table->string('key', 10);
             $table->text('description')->nullable();
             $table->foreignId('owner_id')->constrained('users')->onDelete('cascade'); 
             $table->foreignId('community_id')->nullable();

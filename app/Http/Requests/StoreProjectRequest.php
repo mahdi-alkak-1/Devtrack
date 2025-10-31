@@ -24,7 +24,7 @@ class StoreProjectRequest extends FormRequest
     {
         return [
             'name'        => ['required', 'string', 'max:255'], // must exist, be text, max length 255
-            'key'         => ['required', 'string', 'max:10', 'alpha_num', 'unique:projects,key'], // short code like WEB
+            'key'         => ['required', 'string', 'max:10', 'alpha_num'], // short code like WEB
             'description' => ['nullable', 'string'],            // optional text
             'community_id'=> ['nullable','exists:communities,id'],
         ];
