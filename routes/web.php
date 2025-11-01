@@ -13,7 +13,22 @@ use App\Http\Controllers\MyWorkController;
 use App\Http\Controllers\Auth\PasswordController;
 use Illuminate\Http\Request;
 
+
 Route::get('/', function () {
+    return Inertia::render('Landing');
+})->name('landing');
+
+Route::get('/docs', function () {
+    return Inertia::render('Docs');     // resources/js/Pages/Docs.jsx
+})->name('docs');
+
+Route::get('/about', function () {
+    return Inertia::render('About');    // resources/js/Pages/About.jsx
+})->name('about');
+
+Route::get('/features', fn () => Inertia::render('Features'))->name('features');
+
+Route::get('/dashboard', function () {
     return auth()->check()
         ? redirect()->route('dashboard')
         : redirect()->route('login');
